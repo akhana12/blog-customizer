@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, SyntheticEvent } from 'react';
 import cn from 'classnames';
 import styles from './ArticleParamsForm.module.scss';
 import { ArrowButton } from 'components/arrow-button';
@@ -7,48 +7,79 @@ import { Select } from '../select/Select';
 import { RadioGroup } from 'components/radio-group';
 import { Separator } from 'components/separator';
 import {
+	ArticleStateType,
 	OptionType,
 	backgroundColors,
 	contentWidthArr,
 	fontColors,
 	fontFamilyOptions,
 	fontSizeOptions,
+	defaultArticleState,
 } from 'src/constants/articleProps';
 
 // Определение состояния компонента
-type ArticleState = {
-	bgColorState: OptionType;
-	contentWidthState: OptionType;
-	fontColorState: OptionType;
-	fontFamilyState: OptionType;
-	fontSizeState: OptionType;
-	setBgColorState: React.Dispatch<React.SetStateAction<OptionType>>;
-	setContentWidthState: React.Dispatch<React.SetStateAction<OptionType>>;
-	setFontColorState: React.Dispatch<React.SetStateAction<OptionType>>;
-	setFontState: React.Dispatch<React.SetStateAction<OptionType>>;
-	setFontSizeState: React.Dispatch<React.SetStateAction<OptionType>>;
-	onResetClick: () => void;
-	onSubmitClick: () => void;
+type ArticleParamsFormProps = {
+	state: ArticleStateType;
+	setState: (param: {
+		backgroundColor: OptionType;
+		fontFamilyOption: OptionType;
+		contentWidth: OptionType;
+		fontSizeOption: OptionType;
+		fontColor: OptionType;
+	}) => void;
 };
 
-export const ArticleParamsForm = ({
-	fontFamilyState,
-	setFontState,
-	fontSizeState,
-	setFontSizeState,
-	fontColorState,
-	setFontColorState,
-	bgColorState,
-	setBgColorState,
-	contentWidthState,
-	setContentWidthState,
-	onResetClick,
-	onSubmitClick,
-}: ArticleState) => {
+export const ArticleParamsForm = (props: ArticleParamsFormProps) => {
 	const [isFormOpen, setIsFormOpen] = useState(false);
 	const asideRef = useRef<HTMLElement>(null);
 
+	// Хуки для управления состояниями выбранных параметров стиля
+	const [fontSelectState, setFontSelectState] = useState<OptionType>(
+		props.state.fontFamilyOption
+	);
+	const [fontSizeSelectState, setFontSizeSelectState] = useState<OptionType>(
+		props.state.fontSizeOption
+	);
+	const [fontColorSelectState, setFontColorSelectState] = useState<OptionType>(
+		props.state.fontColor
+	);
+	const [backgroundColorSelectState, setBackgroundColorSelectState] =
+		useState<OptionType>(props.state.backgroundColor);
+	const [contentWidthSelectState, setContentWidthSelectState] =
+		useState<OptionType>(props.state.contentWidth);
+
+	// Обработчик клика по кнопке переключения формы
+	const handleButtonClick = () => {
+		setIsFormOpen(!isFormOpen);
+	};
+
+	const container = isFormOpen ? styles.container_open : styles.container;
+
+	// Обработчик события отправки формы для установки выбранных стилей
+	const handleFormSubmit = (event?: SyntheticEvent) => {
+		event?.preventDefault();
+		props.setState({
+			fontFamilyOption: fontSelectState,
+			fontSizeOption: fontSizeSelectState,
+			fontColor: fontColorSelectState,
+			backgroundColor: backgroundColorSelectState,
+			contentWidth: contentWidthSelectState,
+		});
+	};
+
+	// Функция сброса всех параметров к значениям по умолчанию
+	const setDefaultToAllSelections = (event?: SyntheticEvent) => {
+		event?.preventDefault();
+		props.setState(defaultArticleState);
+		setFontSelectState(defaultArticleState.fontFamilyOption);
+		setFontSizeSelectState(defaultArticleState.fontSizeOption);
+		setFontColorSelectState(defaultArticleState.fontColor);
+		setBackgroundColorSelectState(defaultArticleState.backgroundColor);
+		setContentWidthSelectState(defaultArticleState.contentWidth);
+	};
+
 	useEffect(() => {
+		if (!isFormOpen) return;
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
 				asideRef.current &&
@@ -62,53 +93,43 @@ export const ArticleParamsForm = ({
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
-	}, []);
-
-	// Обработчик клика по кнопке переключения формы
-	const handleButtonClick = () => {
-		setIsFormOpen(!isFormOpen);
-	};
+	}, [asideRef.current]);
 
 	// Обработчик изменения выбранного шрифта
 	const handleFontSelectChange = (fontSelected: OptionType) => {
-		setFontState(fontSelected);
+		setFontSelectState(fontSelected);
 	};
 
 	// Обработчик изменения выбранного размера шрифта
 	const handleFontSizeSelectChange = (fontSizeSelected: OptionType) => {
-		setFontSizeState(fontSizeSelected);
+		setFontSizeSelectState(fontSizeSelected);
 	};
 
 	// Обработчик изменения выбранного цвета шрифта
 	const handleFontColorSelectChange = (fontColorSelected: OptionType) => {
-		setFontColorState(fontColorSelected);
+		setFontColorSelectState(fontColorSelected);
 	};
 
 	// Обработчик изменения выбранного цвета фона
 	const handleBgColorChange = (backgroundColorSelected: OptionType) => {
-		setBgColorState(backgroundColorSelected);
+		setBackgroundColorSelectState(backgroundColorSelected);
 	};
 
 	// Обработчик изменения выбранной ширины контента
 	const handleContentWidthSelectChange = (contentWidthSelected: OptionType) => {
-		setContentWidthState(contentWidthSelected);
+		setContentWidthSelectState(contentWidthSelected);
 	};
-
-	// Обработчик события отправки формы
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		onSubmitClick();
-	};
-
-	const container = isFormOpen ? styles.container_open : styles.container;
 
 	return (
 		<>
 			<ArrowButton onClick={handleButtonClick} isOpen={isFormOpen} />
 			<aside className={cn(styles.container, container)} ref={asideRef}>
-				<form className={styles.form} onSubmit={handleSubmit}>
+				<form
+					className={styles.form}
+					onSubmit={handleFormSubmit}
+					onReset={setDefaultToAllSelections}>
 					<Select
-						selected={fontFamilyState}
+						selected={fontSelectState}
 						options={fontFamilyOptions}
 						onChange={handleFontSelectChange}
 						title='Шрифт'
@@ -116,31 +137,31 @@ export const ArticleParamsForm = ({
 					<RadioGroup
 						name='radioFonts'
 						options={fontSizeOptions}
-						selected={fontSizeState}
+						selected={fontSizeSelectState}
 						title='Размер шрифта'
 						onChange={handleFontSizeSelectChange}
 					/>
 					<Select
-						selected={fontColorState}
+						selected={fontColorSelectState}
 						options={fontColors}
 						onChange={handleFontColorSelectChange}
 						title='Цвет шрифта'
 					/>
 					<Separator />
 					<Select
-						selected={bgColorState}
+						selected={backgroundColorSelectState}
 						options={backgroundColors}
 						onChange={handleBgColorChange}
 						title='Цвет фона'
 					/>
 					<Select
-						selected={contentWidthState}
+						selected={contentWidthSelectState}
 						options={contentWidthArr}
 						onChange={handleContentWidthSelectChange}
 						title='Ширина контента'
 					/>
 					<div className={styles.bottomContainer}>
-						<Button title='Сбросить' type='reset' onClick={onResetClick} />
+						<Button title='Сбросить' type='reset' />
 						<Button title='Применить' type='submit' />
 					</div>
 				</form>
